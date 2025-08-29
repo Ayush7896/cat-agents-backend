@@ -22,8 +22,8 @@ async def ask(request: CATRequest):
         # }
         user_input_state = {"user_query": request.user_query, "passage": request.passage}
         final_state = workflow.invoke(user_input_state, config = config)
-        print(f"persistence checking  {final_state.keys()}")
-        print(f"workflow states {workflow.get_state(config)}")
+        # print(f"persistence checking  {final_state.keys()}")
+        # print(f"workflow states {workflow.get_state(config)}")
         final_answer = final_state.get("final_answer", "No answer generated")
         return CATResponse(final_answer=final_answer)
     except Exception as e:
