@@ -76,5 +76,10 @@ def option_elimination_agent_node(state: CATAgentState):
         passage=state['passage'],
         query=state['user_query']
     )
-    response = model.invoke(messages).content
-    return {"option_elimination_response": response}
+    all_messages = state.get("conversation_messages", []) + messages
+    response = model.invoke(all_messages)
+    print("option elimination response", response)
+
+
+    return {"option_elimination_response": response,
+            "conversation_messages": all_messages + [response]}

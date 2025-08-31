@@ -31,13 +31,32 @@ def classify_critical_reasoning_intent_node(state: CriticalAgentState):
             """),
         ("human", "{user_query}"),
     ])
+
     messages = critical_reasoning_intent_prompt.format_messages(
         passage = state['passage'],
         user_query = state['user_query']
     )
+    all_messages = state.get("conversation_messages", []) + messages 
+    
     structured_model = model.with_structured_output(CriticalAgentResponse)
-    response = structured_model.invoke(messages)
+    raw_model = model  # Regular model for AIMessage
+
+    structured_response = structured_model.invoke(all_messages)
+    
+    # Get AIMessage for conversation history
+    ai_message = raw_model.invoke(all_messages)
     # Return dict with the key to update in state
-    print(f"📋 Classified Intent: {response.intent_critical} (difficulty: {response.difficulty_level})")
+    print(f"📋 Classified Intent: {structured_response.intent_critical}")
     # return {"intent_metadata": response}
-    return {"intent_metadata": response}
+    return {"intent_metadata": structured_response,
+            "conversation_messages": all_messages + [ai_message]}
+    # messages = critical_reasoning_intent_prompt.format_messages(
+    #     passage = state['passage'],
+    #     user_query = state['user_query']
+    # )
+    # structured_model = model.with_structured_output(CriticalAgentResponse)
+    # response = structured_model.invoke(messages)
+    # # Return dict with the key to update in state
+    # print(f"📋 Classified Intent: {response.intent_critical} (difficulty: {response.difficulty_level})")
+    # # return {"intent_metadata": response}
+    # return {"intent_metadata": response}

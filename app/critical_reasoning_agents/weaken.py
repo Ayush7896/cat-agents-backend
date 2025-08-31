@@ -72,13 +72,24 @@ def weaken_agent_node(state: CriticalAgentState):
     Provide reasoning with step-by-step logic, highlight psychological traps for students, and end with a personalized next-step recommendation.  
     {passage}"""),
     ("human", "{query}")
+
 ])
     messages = weaken_agent_prompt.format_messages(
-
-    passage=state['passage'],
-    query=state['user_query'],
-    intent_critical=intent_data.intent_critical,
-    difficulty=intent_data.difficulty_level
-
+        passage=state['passage'],
+        query=state['user_query'],
+        intent_critical=intent_data.intent_critical,
+        difficulty=intent_data.difficulty_level
     )
-    response = model.invoke(messages).cont
+    all_messages = state.get("conversation_messages",[]) + messages
+    response = model.invoke(all_messages)
+    return {"weaken_response": response.content,
+            "conversation_messages": all_messages + [response]}
+    # messages = weaken_agent_prompt.format_messages(
+
+    # passage=state['passage'],
+    # query=state['user_query'],
+    # intent_critical=intent_data.intent_critical,
+    # difficulty=intent_data.difficulty_level
+
+    # )
+    # response = model.invoke(messages).cont

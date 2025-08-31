@@ -159,3 +159,4 @@ graph.add_edge("synthesizer_agent", END)
 
 # compile
 workflow = graph.compile(checkpointer = checkpointer)
+# return graph.compile(checkpointer = checkpointer)

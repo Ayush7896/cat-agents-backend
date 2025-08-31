@@ -99,5 +99,10 @@ def exam_mind_simulator_agent_node(state: CATAgentState):
         passage=state['passage'],
         query=state['user_query']
     )
-    response = model.invoke(messages).content
-    return {"exam_mind_simulator_response": response}
+    all_messages = state.get("conversation_messages",[]) + messages
+    response = model.invoke(all_messages)
+
+    print("exam mind simulator response", response)
+
+    return {"exam_mind_simulator_response": response,
+            "conversation_messages": all_messages + [response]}

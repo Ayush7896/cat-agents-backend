@@ -15,14 +15,18 @@ def route_based_on_intent(state: CATAgentState):
     """
     intent = state['intent_metadata'].intent
     print(f"🎯 Intent in route based on intent function: {intent}")
+
+    # map intent to agent node name
     intent_to_agent = {
         "reading_comprehension": "reading_comprehension_agent",
         "option_elimination": "option_elimination_agent", 
         "exam_mind_simulator": "exam_mind_simulator_agent",
         "critical_reasoning": "critical_reasoning_agent",
-        "general_help": "general_agent"
+        "general_help": "general_help_agent"
     }
-    selected_agent = intent_to_agent.get(intent, "general_agent")
+
+    # add fallback criteria
+    selected_agent = intent_to_agent.get(intent, "general_help")
     print(f"🎯 Intent: {intent} → Routing to: {selected_agent}")
     return selected_agent
 
@@ -37,7 +41,7 @@ def build_workflow():
     graph.add_node("option_elimination_agent", option_elimination_agent_node)
     graph.add_node("exam_mind_simulator_agent", exam_mind_simulator_agent_node)
     graph.add_node("critical_reasoning_agent", critical_reasoning_agent_node)
-    graph.add_node("general_agent", general_agent_node)
+    graph.add_node("general_help_agent", general_agent_node)
     graph.add_node("synthesizer_agent", synthesizer_agent_node)
 
 
@@ -53,7 +57,7 @@ def build_workflow():
             "option_elimination_agent": "option_elimination_agent",
             "exam_mind_simulator_agent": "exam_mind_simulator_agent",
             "critical_reasoning_agent": "critical_reasoning_agent",
-            "general_agent": "general_agent",
+            "general_help_agent": "general_help_agent",
         }
     )
 
@@ -62,7 +66,7 @@ def build_workflow():
     graph.add_edge('option_elimination_agent', 'synthesizer_agent')
     graph.add_edge('exam_mind_simulator_agent', 'synthesizer_agent')
     graph.add_edge("critical_reasoning_agent", "synthesizer_agent")
-    graph.add_edge('general_agent', 'synthesizer_agent')
+    graph.add_edge('general_help_agent', 'synthesizer_agent')
 
     graph.add_edge('synthesizer_agent', END)
 

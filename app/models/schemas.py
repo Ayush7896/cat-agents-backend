@@ -9,36 +9,37 @@ class IntentAgentResponse(BaseModel):
         "exam_mind_simulator", "option_elimination", "preparation_strategy",
         "general_help", "mock_test"
     ]
-    difficulty_level: Literal["easy", "medium", "hard"]
-    rc_question_type: Optional[Literal[
-        "tone", "main_idea", "summary"
-    ]] = None
+    # difficulty_level: Literal["easy", "medium", "hard"]
+    # rc_question_type: Optional[Literal[
+    #     "tone", "main_idea", "summary"
+    # ]] = None
 
 
-class ToneResponse(BaseModel):
-    tone_of_passage: Literal[
-        "Formal", "Informal", "Optimistic", "Pessimistic", "Serious",
-        "Humorous", "Sarcastic", "Critical", "Sympathetic", "Objective",
-        "Subjective", "Encouraging", "Cautious", "Joyful", "Melancholic",
-        "Detached", "Enthusiastic", "Ironic", "Neutral", "Admiring",
-        "Indifferent", "Cynical", "Reflective", "Nostalgic", "Regretful",
-        "Didactic", "Authoritative", "Defensive", "Skeptical", "Witty"
-    ]
-    explanation: str = Field(..., description="Why this tone was chosen.")
+# class ToneResponse(BaseModel):
+#     tone_of_passage: Literal[
+#         "Formal", "Informal", "Optimistic", "Pessimistic", "Serious",
+#         "Humorous", "Sarcastic", "Critical", "Sympathetic", "Objective",
+#         "Subjective", "Encouraging", "Cautious", "Joyful", "Melancholic",
+#         "Detached", "Enthusiastic", "Ironic", "Neutral", "Admiring",
+#         "Indifferent", "Cynical", "Reflective", "Nostalgic", "Regretful",
+#         "Didactic", "Authoritative", "Defensive", "Skeptical", "Witty"
+#     ]
+#     explanation: str = Field(..., description="Why this tone was chosen.")
 
 class CATAgentState(TypedDict, total=False):
     passage: str
     user_query: str
     intent_metadata: IntentAgentResponse
 
-    rc_response: Union[str, ToneResponse]
+    # rc_response: Union[str, ToneResponse]
+    rc_response: str
     option_elimination_response: str
     exam_mind_simulator_response: str
     critical_reasoning_response: str
     general_agent_response: str
     final_answer: str
     
-    messages: Annotated[list[BaseMessage], add_messages]
+    conversation_messages: Annotated[list[BaseMessage], add_messages]
 
 class CriticalAgentResponse(BaseModel):
     intent_critical: Literal["Identify the conclusion", 
@@ -83,9 +84,10 @@ class CriticalAgentState(TypedDict, total = False):
     most_least_helpful_response: str
     explain_response: str
     resolve_conflict_response: str
+    general_agent_response: str
     final_answer: str
 
-    messages: Annotated[list[BaseMessage], add_messages]
+    conversation_messages: Annotated[list[BaseMessage], add_messages]
 
 
 class CATRequest(BaseModel):

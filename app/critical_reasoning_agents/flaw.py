@@ -119,13 +119,23 @@ def flaw_agent_node(state: CriticalAgentState):
         ("human","{query}")
     ])
 
+    # messages = flaw_agent_prompt.format_messages(
+
+    # passage=state['passage'],
+    # query=state['user_query'],
+    # intent_critical=intent_data.intent_critical,
+    # difficulty=intent_data.difficulty_level
+
+    # )
+    # response = model.invoke(messages).content
+    # return {"flaw_response": response}
     messages = flaw_agent_prompt.format_messages(
-
-    passage=state['passage'],
-    query=state['user_query'],
-    intent_critical=intent_data.intent_critical,
-    difficulty=intent_data.difficulty_level
-
+        passage=state['passage'],
+        query=state['user_query'],
+        intent_critical=intent_data.intent_critical,
+        difficulty=intent_data.difficulty_level
     )
-    response = model.invoke(messages).content
-    return {"flaw_response": response}
+    all_messages = state.get("conversation_messages",[]) + messages
+    response = model.invoke(all_messages)
+    return {"flaw_response": response,
+            "conversation_messages": all_messages + [response]}

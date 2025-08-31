@@ -1,7 +1,8 @@
-from app.models.schemas import CATAgentState, ToneResponse
+from app.models.schemas import CATAgentState
 from langchain.prompts import ChatPromptTemplate
 from app.core.llm import model
 from app.models.schemas import CATAgentState
+from langchain_core.messages import BaseMessage, HumanMessage,AIMessage
 
 def general_agent_node(state: CATAgentState):
     print(" running the general agent")
@@ -22,5 +23,7 @@ def general_agent_node(state: CATAgentState):
         passage=state['passage'],
         query=state['user_query']
     )
-    response = model.invoke(messages).content
-    return {"general_agent_response": response}
+    all_messages = state.get("conversation_messages",[]) + messages
+    response = model.invoke(all_messages)
+    return {"general_agent_response": response,
+            "conversation_messages": all_messages + [response]}

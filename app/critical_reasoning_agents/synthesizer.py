@@ -56,9 +56,19 @@ def synthesizer_agent_node(state: CriticalAgentState):
 
     elif intent == 'Resolve a Conflict':
         final_response = state.get('resolve_conflict_response', '')
+
+    messages = state.get("conversation_messages", [])
+
+    return {
+        "final_answer": final_response,
+        "conversation_messages": messages
+    }
+    
+    
+    
     
 
-    return {"final_answer": final_response}
+    # return {"final_answer": final_response}
 
 
 

@@ -18,9 +18,18 @@ def general_agent_node(state: CriticalAgentState):
     """),
     ("human", "{query}")
     ])
+
     messages = general_agent_prompt.format_messages(
         passage=state['passage'],
-        query=state['user_query']
+        query=state['user_query'],
     )
-    response = model.invoke(messages).content
-    return {"general_agent_response": response}
+    all_messages = state.get("conversation_messages",[]) + messages
+    response = model.invoke(all_messages)
+    return {"general_agent_response": response,
+            "conversation_messages": all_messages + [response]}
+    # messages = general_agent_prompt.format_messages(
+    #     passage=state['passage'],
+    #     query=state['user_query']
+    # )
+    # response = model.invoke(messages).content
+    # return {"general_agent_response": response}
