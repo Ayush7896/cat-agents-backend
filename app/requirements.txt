@@ -1,0 +1,16 @@
+uvicorn==0.34.0
+fastapi==0.115.9
+langchain==0.3.20
+langchain-community==0.3.19
+langchain-core==0.3.68
+langchain-openai==0.3.7
+langchain-postgres==0.0.13
+langchain-text-splitters==0.3.6
+langgraph==0.5.1
+langgraph-checkpoint==2.1.0
+langgraph-prebuilt==0.5.2
+langgraph-sdk==0.1.72
+langsmith==0.4.4
+openai==1.65.1
+streamlit==1.49.0
+requests==2.32.3

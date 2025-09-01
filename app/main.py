@@ -1,11 +1,21 @@
 from app.graph import build_workflow
 from fastapi import FastAPI, HTTPException
 from app.models.schemas import CATRequest, CATResponse
+from fastapi.middleware.cors import CORSMiddleware
 
 
 
 workflow = build_workflow()
 app = FastAPI()
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[ "*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.post("/ask", response_model = CATResponse)
 async def ask(request: CATRequest):
