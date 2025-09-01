@@ -4,8 +4,8 @@ from app.core.config import settings
 # single shared model exactly like your snippet
 model = ChatOpenAI(
     model="gpt-4o",
-    temperature=0.2,
+    temperature=0.5,
     top_p=0.1,
-    max_tokens=800,
+    max_tokens=1200,
     api_key=settings.OPENAI_API_KEY
 )
