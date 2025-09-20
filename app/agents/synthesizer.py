@@ -1,6 +1,8 @@
 from app.models.schemas import CATAgentState
-from langchain_core.messages import BaseMessage, HumanMessage,AIMessage
-
+from langchain_core.messages import  HumanMessage
+from langchain.prompts import ChatPromptTemplate
+from app.core.llm import model
+from app.core.utils import build_messages_for_invoke,append_human_ai_to_history
 # def synthesizer_agent_node(state: CATAgentState):
 #     print("Running synthesiser agent")
 #     intent_metadata = state['intent_metadata']
@@ -53,38 +55,47 @@ def synthesizer_agent_node(state: CATAgentState):
         intent = "unknown"
     
     print(f"Intent in synthesiser agent: {intent}")
-    
+    agent_response = ""
     # Get the response based on intent
     if intent == 'reading_comprehension':
-        raw_response = state.get('rc_response', '')  # This is a STRING
+        agent_response = state.get('rc_response', '')  # This is a STRING
     elif intent == 'option_elimination':
-        raw_response = state.get('option_elimination_response', '')  # This is an AIMessage
+        agent_response = state.get('option_elimination_response', '')  # This is an AIMessage
     elif intent == 'exam_mind_simulator':
-        raw_response = state.get('exam_mind_simulator_response', '')  # Check what this is
+        agent_response = state.get('exam_mind_simulator_response', '')  # Check what this is
     elif intent == 'critical_reasoning':
-        raw_response = state.get('critical_reasoning_response', '')  # From CR subgraph
+        agent_response = state.get('critical_reasoning_response', '')  # From CR subgraph
     elif intent == 'general_help':
-        raw_response = state.get('general_agent_response', '')  # This is an AIMessage
+        agent_response = state.get('general_agent_response', '')  # This is an AIMessage
     else:
-        raw_response = state.get('general_agent_response', '')
+        agent_response = state.get('general_agent_response', '')
     
-    # ✅ UNIVERSAL CONTENT EXTRACTION
-    if isinstance(raw_response, AIMessage):
-        final_response = raw_response.content  # Extract content from AIMessage
-        print(f"✅ Extracted content from AIMessage: {final_response[:100]}...")
-    elif isinstance(raw_response, str):
-        final_response = raw_response  # Already a string
-        print(f"✅ Using string response: {final_response[:100]}...")
-    else:
-        final_response = str(raw_response) if raw_response else "No response generated"
-        print(f"⚠️ Converted {type(raw_response)} to string")
+    synthesis_prompt = ChatPromptTemplate.from_messages([
+        ("system", """You are a final answer synthesizer. Take the agent's response and create a clear, 
+         well-formatted final answer for the student. Maintain the educational value while ensuring clarity."""),
+        ("human", "Agent Response: {agent_response}\n\nUser Query: {user_query}")
+    ])
+    messages = synthesis_prompt.format_messages(
+        agent_response=agent_response,
+        user_query=state['user_query']
+    )
     
-    messages = state.get("conversation_messages", [])
     
-    if final_response:
-        messages = messages + [AIMessage(content=final_response)]
+    # Get conversation context but don't include the synthesis prompt in history
+    all_messages = build_messages_for_invoke(state, messages, recent_n=20)
+    response = model.invoke(all_messages)
+    
+    # FIXED: Use the original user message stored during intent classification
+    original_user_msg = state.get('original_user_message')
+    if not original_user_msg:
+        original_user_msg = HumanMessage(content=state['user_query'])
+    
+    # FIXED: Add only the original user query and final synthesized response to history
+    new_history = append_human_ai_to_history(state, original_user_msg, response)
+    
+    print(f"🔍 SYNTHESIZER: Added final Q&A pair to history")
     
     return {
-        "final_answer": final_response,  # ✅ Always string for FastAPI
-        "conversation_messages": messages  # ✅ Full message history preserved
+        "final_answer": response.content,
+        "conversation_messages": new_history
     }

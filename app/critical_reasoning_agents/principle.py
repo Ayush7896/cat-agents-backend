@@ -1,6 +1,7 @@
 from app.models.schemas import CriticalAgentState, CriticalAgentResponse
 from app.core.llm import model
 from langchain.prompts import ChatPromptTemplate
+from app.core.utils import build_messages_for_invoke
 
 
 def principle_agent_node(state: CriticalAgentState):
@@ -96,17 +97,9 @@ def principle_agent_node(state: CriticalAgentState):
         intent_critical=intent_data.intent_critical,
         difficulty=intent_data.difficulty_level
     )
-    all_messages = state.get("conversation_messages",[]) + messages
+    all_messages = build_messages_for_invoke(state, messages, recent_n=10)
     response = model.invoke(all_messages)
-    return {"principle_response": response,
-            "conversation_messages": all_messages + [response]}
-    # messages = identify_principle_agent_prompt.format_messages(
+    print("infer agent generated response")
+# persist conversation_messages only
 
-    # passage=state['passage'],
-    # query=state['user_query'],
-    # intent_critical=intent_data.intent_critical,
-    # difficulty=intent_data.difficulty_level
-
-    # )
-    # response = model.invoke(messages).content
-    # return {"principle_response": response}
+    return {"principle_response": response.content}

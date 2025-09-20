@@ -4,6 +4,7 @@ from app.models.schemas import CATAgentState, IntentAgentResponse
 from langchain_core.messages import BaseMessage, HumanMessage,AIMessage
 
 def classify_intent_node(state: CATAgentState):
+    # prompts 
     intent_classifier_prompt = ChatPromptTemplate.from_messages([
         ("system", """You are an expert CAT VARC intent classifier. 
 
@@ -51,30 +52,25 @@ def classify_intent_node(state: CATAgentState):
     Based on the passage provided, classify the intent and set appropriate fields."""),
             ("human", "{user_query}"),
         ])
-    
-    print(f"passage is {state['passage'][:100]} and query is {state['user_query']}")
     messages = intent_classifier_prompt.format_messages(
-        passage = state['passage'],
-        user_query = state['user_query']
-        
+        passage=state['passage'],
+        user_query=state['user_query']
     )
-
-    all_messages = state.get("conversation_messages", []) + messages 
     
+    # DON'T add to conversation history yet - just classify
     structured_model = model.with_structured_output(IntentAgentResponse)
-    raw_model = model  # Regular model for AIMessage
-
-    structured_response = structured_model.invoke(all_messages)
+    structured_response = structured_model.invoke(messages)
     
-    # Get AIMessage for conversation history
-    ai_message = raw_model.invoke(all_messages)
-    # Return dict with the key to update in state
-    print(f"📋 Classified Intent: {structured_response.intent}")
-    # return {"intent_metadata": response}
-    return {"intent_metadata": structured_response,
-            "conversation_messages": all_messages + [ai_message]}
-
-#  "messages": [HumanMessage(content=state["user_query"]), ai_message]
+    # Store the original user message for later use
+    original_user_msg = HumanMessage(content=state['user_query'])
+    
+    print(f"📋 Classified Intent: {structured_response.intent} (RC Type: {structured_response.rc_question_type}) (difficulty: {structured_response.difficulty_level})")
+    
+    return {
+        "intent_metadata": structured_response,
+        "original_user_message": original_user_msg
+    }
+    
 
 
 

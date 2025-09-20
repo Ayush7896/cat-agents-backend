@@ -1,7 +1,7 @@
 from langchain.prompts import ChatPromptTemplate
 from app.core.llm import model
 from app.models.schemas import CATAgentState, IntentAgentResponse
-from app.critical_reasoning_agents.cr_graph import workflow
+from app.critical_reasoning_agents.cr_graph import workflow_critical
 
 
 # def critical_reasoning_agent_node(state: CATAgentState):
@@ -24,7 +24,7 @@ def critical_reasoning_agent_node(state: CATAgentState):
     print(f">>> Entering Critical Reasoning Subgraph for intent: {intent_data.intent}")
     
     # Always run CR subgraph when this node is called
-    result = workflow.invoke({
+    result = workflow_critical.invoke({
         "passage": state["passage"],
         "user_query": state["user_query"]
     })

@@ -1,6 +1,7 @@
 from langchain.prompts import ChatPromptTemplate
 from app.core.llm import model
 from app.models.schemas import CATAgentState
+from app.core.utils import build_messages_for_invoke
 
 def exam_mind_simulator_agent_node(state: CATAgentState):
     print(" running the exam mind simulator agent")
@@ -96,13 +97,15 @@ def exam_mind_simulator_agent_node(state: CATAgentState):
     ("human", "{query}")
     ])
     messages = exam_mind_simulator_prompt.format_messages(
-        passage=state['passage'],
-        query=state['user_query']
+    passage=state['passage'],
+    query=state['user_query']
     )
-    all_messages = state.get("conversation_messages",[]) + messages
+    
+    # Include conversation history for context
+    all_messages = build_messages_for_invoke(state, messages, recent_n=20)
     response = model.invoke(all_messages)
-
-    print("exam mind simulator response", response)
-
-    return {"exam_mind_simulator_response": response,
-            "conversation_messages": all_messages + [response]}
+    
+    print("exam mind simulator agent generated response")
+    
+    # DON'T add to conversation history here - let synthesizer handle it
+    return {"rc_response": response.content}

@@ -9,10 +9,8 @@ class IntentAgentResponse(BaseModel):
         "exam_mind_simulator", "option_elimination", "preparation_strategy",
         "general_help", "mock_test"
     ]
-    # difficulty_level: Literal["easy", "medium", "hard"]
-    # rc_question_type: Optional[Literal[
-    #     "tone", "main_idea", "summary"
-    # ]] = None
+    difficulty_level: Literal["easy", "medium", "hard"]
+    rc_question_type: Optional[Literal["tone", "main_idea", "summary"]] = None
 
 
 # class ToneResponse(BaseModel):

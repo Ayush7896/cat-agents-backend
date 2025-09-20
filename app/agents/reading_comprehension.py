@@ -2,6 +2,7 @@ from langchain.prompts import ChatPromptTemplate
 from app.core.llm import model
 from app.models.schemas import CATAgentState, IntentAgentResponse
 from langchain_core.messages import BaseMessage, HumanMessage,AIMessage
+from app.core.utils import build_messages_for_invoke
 
 def reading_comprehension_agent_node(state: CATAgentState):
  
@@ -19,19 +20,23 @@ def reading_comprehension_agent_node(state: CATAgentState):
                     Provide comprehensive, actionable advice with specific examples.
                     Always end with a personalized next step recommendation.
                     Passage to analyze: {passage}
-    """),
+                    Question type: {rc_question_type}
+                    difficulty: {difficulty}
+                    """),
             ("human", "{query}")
         ])
     messages = reading_comprehension_prompt.format_messages(
-            
-            passage=state['passage'],
-            query=state['user_query'],
-            
-        )
-    all_messages = state.get("conversation_messages", []) + messages
+    passage=state['passage'],
+    query=state['user_query'],
+    rc_question_type=intent_data.rc_question_type,
+    difficulty=intent_data.difficulty_level
+    )
+    
+    # Include conversation history for context
+    all_messages = build_messages_for_invoke(state, messages, recent_n=20)
     response = model.invoke(all_messages)
-
-    print("main idea response", response)
-
-    return {"rc_response": response.content,
-            "conversation_messages": all_messages + [response]}
+    
+    print("RC agent generated response")
+    
+    # DON'T add to conversation history here - let synthesizer handle it
+    return {"rc_response": response.content}
