@@ -2,11 +2,13 @@ from langchain.prompts import ChatPromptTemplate
 from app.core.llm import model
 from app.models.schemas import CriticalAgentState, CriticalAgentResponse
 from app.core.utils import build_messages_for_invoke
-
+import logging
+logger = logging.getLogger(__name__)
 
 def implication_agent_node(state: CriticalAgentState):
     # prompts
     intent_data = state['intent_metadata']
+    logger.info(f"intent in implication agent, {intent_data}")
     implication_agent_prompt = ChatPromptTemplate.from_messages([
     ("system", """You are the world's foremost expert in CAT VARC logical reasoning, 
     specializing in IMPLICATION / ENTAILMENT (must be true) questions.
@@ -86,32 +88,32 @@ def implication_agent_node(state: CriticalAgentState):
     "If all of the statements above are true, which one of the following must also be true?"
 
     (A) If there are no sophisticated listeners in the audience, then there will be no inspired musical performances in the concert.
-This is the answer. Part of our prediction was:
-not understand roots -> not soph. listen. -> not good show -> not inspired mus.perf.in concert
-So it must be true that if there are no sophisticated listeners in the audience, then there will not be any inspired musical performances in the concert. Of course, we could also infer that there won't be a good show, but our task is only to evaluate the statement we're given to determine whether it must be true.
- 
-(B) No people who understand their musical roots will be in the audience if the audience will not be treated to a good show.
-This choice could be false. It can be diagrammed in this way:
-(B) not good show -> no people who understand roots in audience
-But our relevant deduction was:
-not understand roots -> not soph. listen. -> not good show -> not inspired mus. perf. in concert
-So the only deduction we can make from the trigger of not good show is that there will be no inspired musical performances in the concert.
- 
-(C) If there will be people in the audience who understand their musical roots, then at least one musical performance in the concert will be inspired. This choice doesn't have to be true. We can note the choice in this way:
-ppl in audience who understand roots ->inspired mus. perf
-But from the passage, we don’t know anything if there will be people who do understand their musical roots. That’s at the end of the relevant chain of logic. We can identify implications if there will not be people who understand their own musical roots, but not if there will be people who do.
- 
-(D) The audience will be treated to a good show unless there are people in the audience who do not understand their musical roots.
-This choice doesn't have to be true, and in fact, it can't be true. We can note the choice in this way:
-not good show -> not understand musical roots
-and the logically equivalent statement would be
-understand musical roots -> good show
-This choice is the opposite of what we’re looking for and therefore it must be false. It indicates that it’s necessary for there to be people in the audience who do not understand their musical roots in order for there to not be a good show, but we were told that it’s necessary for there to be people in the audience who do understand their musical roots in order for there to be a good show.
- 
-(E) If there are sophisticated listeners in the audience, then there will be inspired musical performances in the concert.
-This choice doesn't have to be true. We can note (E)'s statement in this way:
-(E) sophisticated listeners in audience -> inspired musical perf. in concert
-We know that if there are sophisticated listeners in the audience, then those sophisticated listeners understand their own musical roots. That’s all that is implied by the information we were given. If there are not sophisticated listeners in the audience, then we can infer that there will be no inspired musical performance in the concert, but this choice isn’t equivalent.
+    This is the answer. Part of our prediction was:
+    not understand roots -> not soph. listen. -> not good show -> not inspired mus.perf.in concert
+    So it must be true that if there are no sophisticated listeners in the audience, then there will not be any inspired musical performances in the concert. Of course, we could also infer that there won't be a good show, but our task is only to evaluate the statement we're given to determine whether it must be true.
+    
+    (B) No people who understand their musical roots will be in the audience if the audience will not be treated to a good show.
+    This choice could be false. It can be diagrammed in this way:
+    (B) not good show -> no people who understand roots in audience
+    But our relevant deduction was:
+    not understand roots -> not soph. listen. -> not good show -> not inspired mus. perf. in concert
+    So the only deduction we can make from the trigger of not good show is that there will be no inspired musical performances in the concert.
+    
+    (C) If there will be people in the audience who understand their musical roots, then at least one musical performance in the concert will be inspired. This choice doesn't have to be true. We can note the choice in this way:
+    ppl in audience who understand roots ->inspired mus. perf
+    But from the passage, we don’t know anything if there will be people who do understand their musical roots. That’s at the end of the relevant chain of logic. We can identify implications if there will not be people who understand their own musical roots, but not if there will be people who do.
+    
+    (D) The audience will be treated to a good show unless there are people in the audience who do not understand their musical roots.
+    This choice doesn't have to be true, and in fact, it can't be true. We can note the choice in this way:
+    not good show -> not understand musical roots
+    and the logically equivalent statement would be
+    understand musical roots -> good show
+    This choice is the opposite of what we’re looking for and therefore it must be false. It indicates that it’s necessary for there to be people in the audience who do not understand their musical roots in order for there to not be a good show, but we were told that it’s necessary for there to be people in the audience who do understand their musical roots in order for there to be a good show.
+    
+    (E) If there are sophisticated listeners in the audience, then there will be inspired musical performances in the concert.
+    This choice doesn't have to be true. We can note (E)'s statement in this way:
+    (E) sophisticated listeners in audience -> inspired musical perf. in concert
+    We know that if there are sophisticated listeners in the audience, then those sophisticated listeners understand their own musical roots. That’s all that is implied by the information we were given. If there are not sophisticated listeners in the audience, then we can infer that there will be no inspired musical performance in the concert, but this choice isn’t equivalent.
 
     Step-by-step reasoning:
     1. Break into conditionals:
@@ -150,15 +152,22 @@ We know that if there are sophisticated listeners in the audience, then those so
     """),
         ("human", "{query}")
     ])
-    messages = implication_agent_prompt.format_messages(
-        passage=state['passage'],
-        query=state['user_query'],
-        intent_critical=intent_data.intent_critical,
-        difficulty=intent_data.difficulty_level
-    )
-    all_messages = build_messages_for_invoke(state, messages, recent_n=10)
-    response = model.invoke(all_messages)
-    print("infer agent generated response")
-# persist conversation_messages only
-
-    return {"implication_response": response.content}
+    try:
+        messages = implication_agent_prompt.format_messages(
+            passage=state['passage'],
+            query=state['user_query'],
+            intent_critical=intent_data.intent_critical,
+            difficulty=intent_data.difficulty_level
+        )
+        all_messages = build_messages_for_invoke(state, messages, recent_n=10)
+        response = model.invoke(all_messages)
+    except Exception as e:
+         # log with traceback
+        logger.exception("Error in implication agent while invoking model")
+        # return safe fallback
+        return {"implication_response": "Sorry, I had trouble analyzing the passage. Please try again."}
+    else:
+        logger.info("implication agent successfully generated response")
+        return {"implication_response": response.content}
+    finally:
+        logger.debug("implication agent node finished execution")

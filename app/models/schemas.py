@@ -98,3 +98,9 @@ class CATResponse(BaseModel):
     final_answer: str
 
 
+class CorrectionRequest(BaseModel):
+    passage: str
+    question: str
+    wrong_answer: str
+    correct_answer: str
+    explanation: Optional[str] = None

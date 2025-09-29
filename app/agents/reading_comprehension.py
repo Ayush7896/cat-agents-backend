@@ -1,13 +1,14 @@
 from langchain.prompts import ChatPromptTemplate
 from app.core.llm import model
 from app.models.schemas import CATAgentState, IntentAgentResponse
-from langchain_core.messages import BaseMessage, HumanMessage,AIMessage
 from app.core.utils import build_messages_for_invoke
+import logging
+
+logger = logging.getLogger(__name__)
 
 def reading_comprehension_agent_node(state: CATAgentState):
- 
-   
     intent_data: IntentAgentResponse = state['intent_metadata']
+
     reading_comprehension_prompt = ChatPromptTemplate.from_messages([
     ("system", """You are an expert CAT Reading Comprehension tutor with 15+ years of experience.
                     Your capabilities:
@@ -25,18 +26,26 @@ def reading_comprehension_agent_node(state: CATAgentState):
                     """),
             ("human", "{query}")
         ])
-    messages = reading_comprehension_prompt.format_messages(
-    passage=state['passage'],
-    query=state['user_query'],
-    rc_question_type=intent_data.rc_question_type,
-    difficulty=intent_data.difficulty_level
-    )
+    try:
+        # build messages
+        messages = reading_comprehension_prompt.format_messages(
+            passage=state['passage'],
+            query=state['user_query'],
+            rc_question_type=intent_data.rc_question_type,
+            difficulty=intent_data.difficulty_level
+        )
+        
+        # Include conversation history for context
+        all_messages = build_messages_for_invoke(state, messages, recent_n=20)
+        response = model.invoke(all_messages)
+    except Exception as e:
+        # log with traceback
+        logger.exception("Error in RC agent while invoking model")
+        # return safe fallback
+        return {"rc_response": "Sorry, I had trouble analyzing the passage. Please try again."}
+    else:
+        logger.info("RC agent successfully generated response")
+        return {"rc_response": response.content}
+    finally:
+        logger.debug("reading comprehension agent node finished execution")
     
-    # Include conversation history for context
-    all_messages = build_messages_for_invoke(state, messages, recent_n=20)
-    response = model.invoke(all_messages)
-    
-    print("RC agent generated response")
-    
-    # DON'T add to conversation history here - let synthesizer handle it
-    return {"rc_response": response.content}

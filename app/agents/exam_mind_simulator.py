@@ -2,9 +2,11 @@ from langchain.prompts import ChatPromptTemplate
 from app.core.llm import model
 from app.models.schemas import CATAgentState
 from app.core.utils import build_messages_for_invoke
+import logging
+logger = logging.getLogger(__name__)
 
 def exam_mind_simulator_agent_node(state: CATAgentState):
-    print(" running the exam mind simulator agent")
+    logger.info(f"running the exam mind simulator agent")
     exam_mind_simulator_prompt = ChatPromptTemplate.from_messages([
     ("system", """ You are CAT leading examiner with 20+ years of experience in designing complex logical reasoning questions for the CAT VARC section.
     "name": "Dr. Amit Verma",
@@ -96,16 +98,22 @@ def exam_mind_simulator_agent_node(state: CATAgentState):
     Always end with a personalized next step recommendation. {passage}"""),
     ("human", "{query}")
     ])
-    messages = exam_mind_simulator_prompt.format_messages(
-    passage=state['passage'],
-    query=state['user_query']
-    )
-    
-    # Include conversation history for context
-    all_messages = build_messages_for_invoke(state, messages, recent_n=20)
-    response = model.invoke(all_messages)
-    
-    print("exam mind simulator agent generated response")
-    
-    # DON'T add to conversation history here - let synthesizer handle it
-    return {"rc_response": response.content}
+    try:
+        messages = exam_mind_simulator_prompt.format_messages(
+        passage=state['passage'],
+        query=state['user_query']
+        )
+        
+        # Include conversation history for context
+        all_messages = build_messages_for_invoke(state, messages, recent_n=20)
+        response = model.invoke(all_messages)
+    except Exception as e:
+        # log with traceback
+        logger.exception("Error in exam mind simulator agent while invoking model")
+        # return safe fallback
+        return {"exam_mind_simulator_response": "Sorry, I had trouble analyzing the passage. Please try again."}
+    else:
+        logger.info("exam mind simulator agent successfully generated response")
+        return {"exam_mind_simulator_response": response.content}
+    finally:
+        logger.debug("exam mind simulator agent node finished execution")

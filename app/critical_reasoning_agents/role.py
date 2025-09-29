@@ -2,9 +2,13 @@ from langchain.prompts import ChatPromptTemplate
 from app.core.llm import model
 from app.models.schemas import CriticalAgentState, CriticalAgentResponse
 from app.core.utils import build_messages_for_invoke
+import logging
+logger = logging.getLogger(__name__)
 
 def role_agent_node(state: CriticalAgentState):
     intent_data = state['intent_metadata']  
+    logger.info(f"intent in role agent, {intent_data}")
+    # prompts
     identify_role_agent_prompt = ChatPromptTemplate.from_messages([
     ("system", """You are the world’s top expert in CAT VARC Logical Reasoning, 
     specializing in “Identify the Role” questions.
@@ -108,18 +112,23 @@ def role_agent_node(state: CriticalAgentState):
     {passage}
     """),
     ("human", "{query}")
-])
-    
-
-    messages = identify_role_agent_prompt.format_messages(
-        passage=state['passage'],
-        query=state['user_query'],
-        intent_critical=intent_data.intent_critical,
-        difficulty=intent_data.difficulty_level
-    )
-    all_messages = build_messages_for_invoke(state, messages, recent_n=10)
-    response = model.invoke(all_messages)
-    print("infer agent generated response")
-# persist conversation_messages only
-
-    return {"role_response": response.content}
+    ])
+    try:
+        messages = identify_role_agent_prompt.format_messages(
+            passage=state['passage'],
+            query=state['user_query'],
+            intent_critical=intent_data.intent_critical,
+            difficulty=intent_data.difficulty_level
+        )
+        all_messages = build_messages_for_invoke(state, messages, recent_n=10)
+        response = model.invoke(all_messages)
+    except Exception as e:
+         # log with traceback
+        logger.exception("Error in role agent while invoking model")
+        # return safe fallback
+        return {"role_response": "Sorry, I had trouble analyzing the passage. Please try again."}
+    else:
+        logger.info("role agent successfully generated response")
+        return {"role_response": response.content}
+    finally:
+        logger.debug("role agent node finished execution")

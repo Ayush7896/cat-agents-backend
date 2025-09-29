@@ -2,9 +2,12 @@ from langchain.prompts import ChatPromptTemplate
 from app.core.llm import model
 from app.models.schemas import CATAgentState
 from app.core.utils import build_messages_for_invoke
+import logging
+logger = logging.getLogger(__name__)
 
 def option_elimination_agent_node(state: CATAgentState):
-    print(" running the option elimination agent")
+    logger.info(f"running the option elimination agent")
+
     option_elimination_prompt = ChatPromptTemplate.from_messages([
         ("system", """You are the world's leading expert in logical reasoning for CAT VARC section.
 
@@ -73,16 +76,23 @@ def option_elimination_agent_node(state: CATAgentState):
     Always end with a personalized next step recommendation. {passage}"""),
         ("human", "{query}")
     ])
-    messages = option_elimination_prompt.format_messages(
-    passage=state['passage'],
-    query=state['user_query'],
-    )
-    
-    # Include conversation history for context
-    all_messages = build_messages_for_invoke(state, messages, recent_n=20)
-    response = model.invoke(all_messages)
-    
-    print("option elimination agent generated response")
-    
-    # DON'T add to conversation history here - let synthesizer handle it
-    return {"rc_response": response.content}
+    try:
+        messages = option_elimination_prompt.format_messages(
+        passage=state['passage'],
+        query=state['user_query'],
+        )
+        
+        # Include conversation history for context
+        all_messages = build_messages_for_invoke(state, messages, recent_n=20)
+        response = model.invoke(all_messages)
+    except Exception as e:
+        # log with traceback
+        logger.exception("Error in option elimination agent while invoking model")
+        # return safe fallback
+        return {"option_elimination_response": "Sorry, I had trouble analyzing the passage. Please try again."}
+    else:
+        logger.info("option elimination agent successfully generated response")
+        return {"option_elimination_response": response.content}
+
+    finally:
+        logger.debug("option elimination agent node finished execution")

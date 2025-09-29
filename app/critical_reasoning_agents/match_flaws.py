@@ -2,10 +2,12 @@ from app.models.schemas import CriticalAgentState, CriticalAgentResponse
 from app.core.llm import model
 from langchain.prompts import ChatPromptTemplate
 from app.core.utils import build_messages_for_invoke
-
+import logging
+logger = logging.getLogger(__name__)
 
 def match_flaws_agent_node(state: CriticalAgentState):
     intent_data = state['intent_metadata']
+    logger.info(f"intent in match flaw agent, {intent_data}")
     # prompts
     match_flaw_agent_prompt = ChatPromptTemplate.from_messages([
     ("system", """You are the world’s leading expert in logical reasoning for CAT VARC section.
@@ -115,16 +117,23 @@ def match_flaws_agent_node(state: CriticalAgentState):
     Always conclude with a personalized next step recommendation.  
     {passage}"""),
     ("human", "{query}")
-])
-    messages = match_flaw_agent_prompt.format_messages(
-        passage=state['passage'],
-        query=state['user_query'],
-        intent_critical=intent_data.intent_critical,
-        difficulty=intent_data.difficulty_level
-    )
-    all_messages = build_messages_for_invoke(state, messages, recent_n=10)
-    response = model.invoke(all_messages)
-    print("infer agent generated response")
-# persist conversation_messages only
-
-    return {"match_flaws_responsea": response.content}
+    ])
+    try:
+        messages = match_flaw_agent_prompt.format_messages(
+            passage=state['passage'],
+            query=state['user_query'],
+            intent_critical=intent_data.intent_critical,
+            difficulty=intent_data.difficulty_level
+        )
+        all_messages = build_messages_for_invoke(state, messages, recent_n=10)
+        response = model.invoke(all_messages)
+    except Exception as e:
+         # log with traceback
+        logger.exception("Error in match flaw agent while invoking model")
+        # return safe fallback
+        return {"match_flaws_response": "Sorry, I had trouble analyzing the passage. Please try again."}
+    else:
+        logger.info("match flaw agent successfully generated response")
+        return {"match_flaws_response": response.content}
+    finally:
+        logger.debug("match flaw agent node finished execution")

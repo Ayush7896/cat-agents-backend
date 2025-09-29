@@ -1,7 +1,12 @@
 from langchain_openai import ChatOpenAI
 from app.core.config import settings
+import logging
+
+logger = logging.getLogger(__name__)
 
 # single shared model exactly like your snippet
+logger.info("Initializing OpenAI model")
+logger.debug(f"Model config: model=gpt-4o, temp=0.2, max_tokens=800")
 model = ChatOpenAI(
     model="gpt-4o",
     temperature=0.2,
@@ -9,3 +14,4 @@ model = ChatOpenAI(
     max_tokens=800,
     api_key=settings.OPENAI_API_KEY
 )
+logger.info("OpenAI model initialized successfully")
